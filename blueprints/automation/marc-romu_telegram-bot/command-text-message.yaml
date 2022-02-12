@@ -1,0 +1,246 @@
+blueprint:
+  name: 'Telegram Bot: Respond to Telegram Command with a text message'
+  description: >
+    Listen to a Telegram Command and respond back with a text message using Telegram Bot service.
+
+    ## "Command" field
+
+    Command to listen for. Must start with '/'.
+    
+    _Example:_ `/start`
+
+    ## "Bot" field
+
+    Bot username. It is used when there is more than one bot in a group chat.
+
+    _Example:_ `my_bot_username_bot`
+    
+    ## "Title" and "Message" fields
+
+    Both fields accept markdown:
+
+      - `*bold*` for **bold**
+
+      - `_italic_` for _italic_
+
+      - ``monospace`` for `monospace`
+
+    They also accept templating.
+
+    ## "Reply in private?" field
+
+    When talking to your bot in a group chat, the answer can be sent to the same group chat or directly to a private chat with the sender user.
+
+    Set it to TRUE to reply in a private chat. Leave it FALSE if you want to send the answer's message in the group chat.
+    
+    This field has no effect when talking directly to the bot in a private chat.
+    
+    ## "Delay" field
+
+    Time, in seconds, to wait before message is sent. It is useful in case you need to wait for another action to finish before sending back some updated state.
+
+    ## Example
+    
+    With command `/toggle_living_light` I want to toggle the living room light and send back a message with its current state:
+
+      1. Using [this other blueprint](https://community.home-assistant.io/t/306626), configure command `/toggle_living_light` to execute the desired action (in this case, toggle a light).
+      2. In the current blueprint:
+          - Listen to command `/toggle_living_light`.
+          - Set some delay to allow the toggle action to finish. For example, 2 seconds would be enough in this example.
+          - Set a template message to evaluate the state of living light: `Living light is {% if is_state('light.living_room', 'on') %}*on*{% else %}*off*{% endif %}.`
+
+    ## "Inline keyboard" fields
+
+    You can optionally show inline keyboard buttons below telegram message. If you want multiple buttons in one row, seperate them by commas.
+
+    Format: `Button label:/command`
+
+    _Example:_ `Need some help?:/help, Status:/status`
+
+    ## Available telegram variables in this blueprint
+
+    These variables are received from telegram. You can use them in templates within this automation:
+
+      - `telegram_args`: List of words sent after command. You can get each word by its index: `telegram_args[0]`, `telegram_args[1]`, etc.
+
+      - `telegram_args_as_text`: Single plain text string from arguments' list. Useful if you need full text, not single words.
+
+      - `telegram_sender_first_name`: Sender's first name.
+
+      - `telegram_sender_last_name`: Sender's last name.
+
+      - `telegram_sender_full_name`: Sender's full name, as `first_name + " " + last_name`
+      
+      - `telegram_sender_user_id`: Sender's user id.
+
+      - `telegram_chat_id`: Chat id. It is the same as sender's user id in case it is a private message.
+
+    #### Template example
+
+    Use format `{{ variable_name }}` to indicate that it is a template, as usual in Home Assistant.
+
+    _Title:_ `Hi {{ telegram_sender_first_name }}!`
+
+    _Message:_ `You said {{ telegram_args_as_text }} after the command`
+    
+  domain: automation
+  input:
+    telegram_command:
+      name: Command
+      description: 'REQUIRED. Example: /start'
+      selector:
+        text:
+          multiline: false
+    telegram_bot:
+      name: Bot
+      description: 'REQUIRED. Telegram bot username. Example: my_bot'
+      default: 'bot_not_specified_in_automation'
+      selector:
+        text:
+          multiline: false
+    title:
+      name: Title
+      description: Optional message's title. Accepts markdown and templates.
+      default: ''
+      selector:
+        text:
+          multiline: false
+    message:
+      name: Message
+      description: REQUIRED message's body. Accepts markdown and templates.
+      selector:
+        text:
+          multiline: true
+    private:
+      name: Reply in private?
+      description: If bot is added to a group, set it to TRUE to reply in a private chat to the person who executed the command instead of in the group chat. This is not needed in case you talk directly to the bot in a private chat.
+      default: false
+      selector:
+        boolean:
+    delay:
+      name: Delay
+      description: Optional delay before message is sent, in seconds.
+      default: '0'
+      selector:
+        number:
+          min: 0
+          max: 30
+          mode: slider
+          unit_of_measurement: "s"
+    inline_keyboard_1:
+      name: Inline keyboard (row 1)
+      description: '(optional). Example: Help:/help, Status:/status'
+      default: ''
+      selector:
+        text:
+          multiline: false
+    inline_keyboard_2:
+      name: Inline keyboard (row 2)
+      description: '(optional). Example: Help:/help, Status:/status'
+      default: ''
+      selector:
+        text:
+          multiline: false
+    inline_keyboard_3:
+      name: Inline keyboard (row 3)
+      description: '(optional). Example: Help:/help, Status:/status'
+      default: ''
+      selector:
+        text:
+          multiline: false
+    inline_keyboard_4:
+      name: Inline keyboard (row 4)
+      description: '(optional). Example: Help:/help, Status:/status'
+      default: ''
+      selector:
+        text:
+          multiline: false
+    inline_keyboard_5:
+      name: Inline keyboard (row 5)
+      description: '(optional). Example: Help:/help, Status:/status'
+      default: ''
+      selector:
+        text:
+          multiline: false
+    inline_keyboard_6:
+      name: Inline keyboard (row 6)
+      description: '(optional). Example: Help:/help, Status:/status'
+      default: ''
+      selector:
+        text:
+          multiline: false
+
+mode: parallel
+max: 10
+max_exceeded: warning
+
+trigger_variables:
+  telegram_command: !input 'telegram_command'
+  telegram_bot: !input 'telegram_bot'
+  telegram_command_at_bot: "{{ telegram_command ~ '@' ~ telegram_bot }}"
+
+trigger:
+- platform: event
+  id: "telegram_command"
+  event_type: telegram_command
+  event_data:
+    command: "{{ telegram_command }}"
+- platform: event
+  id: "telegram_command"
+  event_type: telegram_callback
+  event_data:
+    data: "{{ telegram_command }}"
+- platform: event
+  id: "telegram_command_at_bot"
+  event_type: telegram_command
+  event_data:
+    command: "{{ telegram_command_at_bot }}"
+- platform: event
+  id: "telegram_command_at_bot"
+  event_type: telegram_callback
+  event_data:
+    data: "{{ telegram_command_at_bot }}"
+
+variables:
+  telegram_command: !input 'telegram_command'
+  telegram_bot: !input 'telegram_bot'
+  telegram_command_at_bot: "{{ telegram_command ~ '@' ~ telegram_bot }}"
+  telegram_args: "{{ trigger.event.data['args'] }}"
+  telegram_args_as_text: "{% for arg in telegram_args %}{{ arg }} {% endfor %}"
+  telegram_sender_first_name: "{{ trigger.event.data['from_first'] }}"
+  telegram_sender_last_name: "{{ trigger.event.data['from_last'] }}"
+  telegram_sender_full_name: "{{ telegram_sender_first_name }} {{ telegram_sender_last_name }}"
+  telegram_sender_user_id: "{{ trigger.event.data['user_id'] }}"
+  telegram_chat_id: "{{ trigger.event.data['chat_id'] }}"
+  title: !input 'title'
+  message: !input 'message'
+  delay: !input 'delay'
+  private: !input 'private'
+  inline_keyboard_1: !input 'inline_keyboard_1'
+  inline_keyboard_2: !input 'inline_keyboard_2'
+  inline_keyboard_3: !input 'inline_keyboard_3'
+  inline_keyboard_4: !input 'inline_keyboard_4'
+  inline_keyboard_5: !input 'inline_keyboard_5'
+  inline_keyboard_6: !input 'inline_keyboard_6'
+  inline_keyboard: >
+    {% set lines = [inline_keyboard_1, inline_keyboard_2, inline_keyboard_3, inline_keyboard_4, inline_keyboard_5, inline_keyboard_6] %}
+    {% set inline_keyboard = namespace(data = []) %}
+    {% for line in lines%}
+      {% if line|length > 0 %}
+        {% set inline_keyboard_line = line %}
+        {% set inline_keyboard.data = inline_keyboard.data + [inline_keyboard_line] %}
+      {% endif %}
+    {% endfor %}
+    {{ inline_keyboard.data }}
+
+condition:
+
+action:
+- delay:
+    seconds: "{{ delay }}"
+- service: telegram_bot.send_message
+  data:
+    target: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id }}{% endif %}'
+    title: !input 'title'
+    message: !input 'message'
+    inline_keyboard: "{{ inline_keyboard }}"
