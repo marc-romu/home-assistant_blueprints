@@ -1,0 +1,199 @@
+blueprint:
+  name: 'Telegram Bot: Execute an action after receiving a text message'
+  description: >
+    Wait for a `telegram_text` event and execute an action. Can be filtred by user_id and chat_id.
+    
+    ## Blueprint fields:
+
+    ### "Remove received message?" field
+
+    Activate this toggle to delete the received message from chat.
+
+    ### "Sequence" field
+
+    There are two sequence fields to set up (1) what should happen when receiving the text message and (2) what should happen if the text message is not received. You can use variables explained below.
+    
+    ## Script variables:
+
+    These variables can be set up when calling the script. See [Passing variables to scripts](https://www.home-assistant.io/integrations/script/#passing-variables-to-scripts) for more information.
+
+      - `timeout`: Maximum time to wait for receiving a message, in seconds. Default 30 seconds.
+      
+      - `filter_user_id`: Execute the sequence ONLY IF the text message is received from this user_id. Leave empty to avoid filtering.
+
+      - `filter_chat_id`: Execute the sequence ONLY IF the text message is received from this chat_id. Leave empty to avoid filtering.
+
+    ## Available variables in this blueprint (ONLY IF MESSAGE IS RECEIVED):
+
+    Event data received from telegram are parsed as variables so that they are easily used in templates. These variables can be used within this script:
+
+      - `telegram_text`: Text message.
+
+      - `telegram_sender_first_name`: Sender's first name.
+
+      - `telegram_sender_last_name`: Sender's last name.
+
+      - `telegram_sender_full_name`: Sender's full name, as `first_name + " " + last_name`
+
+      - `telegram_sender_user_id`: Sender's user id.
+
+      - `telegram_chat_id`: Chat id.
+
+    #### Template example
+
+    Use format `{{ variable_name }}` in order to print a variable, as usual in Home Assistant.
+
+    `Hi {{ telegram_sender_first_name }}! You said: {{ telegram_text }}.`
+
+  domain: script
+
+  input:
+    remove:
+      name: Remove received message?
+      description: Activate this toggle to delete the received message from chat.
+      default: false
+      selector:
+        boolean:
+
+    sequence_message_received:
+      name: Sequence if message is received
+      description: "What should happen when receiving a message? You can use variables explained above."
+      selector:
+        action: {}
+
+    sequence_message_failed:
+      name: Sequence if message is NOT received
+      description: "What should happen when NOT receiving any message? You can use variables explained above."
+      selector:
+        action: {}
+
+
+
+mode: parallel
+
+max: 10
+
+max_exceeded: warning
+
+
+
+fields:
+  timeout:
+    name: Timeout
+    description: Maximum time to wait for receiving a message, in seconds.
+    default: '30'
+    required: true
+    selector:
+      number:
+        min: 0
+        max: 300
+        mode: slider
+        unit_of_measurement: "s"     
+
+  filter_user_id:
+    name: Filter user_id
+    description: Execute the sequence ONLY IF the text message is received from this user_id. Leave empty to avoid filtering.
+    selector:
+      text:
+
+  filter_chat_id:
+    name: Filter chat_id
+    description: Execute the sequence ONLY IF the text message is received from this chat_id. Leave empty to avoid filtering.
+    selector:
+      text:
+
+
+
+variables:
+  filter_user_id: "{% if filter_user_id is defined %}{{ filter_user_id }}{% else %}{% endif %}"
+  filter_chat_id: "{% if filter_chat_id is defined %}{{ filter_chat_id }}{% else %}{% endif %}"
+  timeout: "{% if timeout is defined %}{{ timeout }}{% else %}30{% endif %}"
+  remove: !input remove
+
+
+
+sequence:
+  - alias: "Choose whether to filter or not"
+    choose:
+      - alias: "Filter both user_id and chat_id"
+        conditions: "{{ filter_user_id != '' and filter_chat_id != '' }}"
+        sequence:
+          - alias: "Wait for telegram_text event"
+            wait_for_trigger:
+              - platform: event
+                id: "telegram_text"
+                event_type: telegram_text
+                event_data:
+                  user_id: "{{ filter_user_id }}"
+                  chat_id: "{{ filter_chat_id }}"
+            timeout:
+              seconds: "{{ timeout }}"
+            continue_on_timeout: true
+      - alias: "Filter ONLY chat_id"
+        conditions: "{{ filter_user_id == '' and filter_chat_id != '' }}"
+        sequence:
+          - alias: "Wait for telegram_text event"
+            wait_for_trigger:
+              - platform: event
+                id: "telegram_text"
+                event_type: telegram_text
+                event_data:
+                  chat_id: "{{ filter_chat_id }}"
+            timeout:
+              seconds: "{{ timeout }}"
+            continue_on_timeout: true
+      - alias: "Filter ONLY user_id"
+        conditions: "{{ filter_user_id != '' and filter_chat_id == '' }}"
+        sequence:
+          - alias: "Wait for telegram_text event"
+            wait_for_trigger:
+              - platform: event
+                id: "telegram_text"
+                event_type: telegram_text
+                event_data:
+                  user_id: "{{ filter_user_id }}"
+            timeout:
+              seconds: "{{ timeout }}"
+            continue_on_timeout: true
+    default:
+      - alias: "Wait for telegram_text event"
+        wait_for_trigger:
+          - platform: event
+            id: "telegram_text"
+            event_type: telegram_text
+        timeout:
+          seconds: "{{ timeout }}"
+        continue_on_timeout: true
+
+  - alias: "Choose whether message was received or timeout completed"
+    choose:
+      - alias: "Timeout completed"
+        conditions: "{{ wait.trigger == none }}"
+        sequence: !input 'sequence_message_failed'
+
+    default:
+      - alias: "Message received: setting variables from trigger"
+        variables:
+          telegram_text: "{{ wait.trigger.event.data['text'] }}"
+          telegram_sender_first_name: "{{ wait.trigger.event.data['from_first'] }}"
+          telegram_sender_last_name: "{{ wait.trigger.event.data['from_last'] }}"
+          telegram_sender_full_name: "{{ telegram_sender_first_name }} {{ telegram_sender_last_name }}"
+          telegram_sender_user_id: "{{ wait.trigger.event.data['user_id'] }}"
+          telegram_chat_id: "{{ wait.trigger.event.data['chat_id'] }}"
+          telegram_message_id: "{{ wait.trigger.event.data['id'] }}"
+
+      - alias: "Execute sequence for message received"
+        choose:
+        - conditions: "{{ true }}"
+          sequence: !input 'sequence_message_received'
+
+      - alias: "Do I have to remove the received message from chat?"
+        choose:
+          - alias: "Yes, remove message"
+            conditions: "{{ remove }}"
+            sequence:
+              - alias: "Removing message"
+                service: telegram_bot.delete_message
+                data:
+                  message_id: "{{ telegram_message_id }}"
+                  chat_id: "{{ telegram_chat_id }}"
