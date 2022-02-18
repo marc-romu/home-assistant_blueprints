@@ -4,7 +4,7 @@ Hi! In this repo I store my blueprints for Home Assistant. Feel free to suggest 
 
 # 🔎 What can I find here?
 
-## Telegram Bot
+## Blueprints for Telegram Bot
 
 These are a series of Blueprints focused on simplifying the creation of Telegram Bots, using the [Telegram Bot](https://www.home-assistant.io/integrations/telegram_bot) integration.
 
