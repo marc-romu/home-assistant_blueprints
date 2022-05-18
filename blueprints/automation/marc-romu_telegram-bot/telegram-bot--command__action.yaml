@@ -3,29 +3,54 @@ blueprint:
   description: >
     Listen to a Telegram Command and execute an action if listened
     
+
     ## "Command" field
+
     Command to listen for. Must start with '/'.
-    
+
     _Example:_ `/start`
+    
+
     ## "Bot" field
+
     Bot username. It is used when there is more than one bot in a group chat.
+
     _Example:_ `my_bot_username_bot`
     
+
     ## "Sequence" field
+
     What should happen when receiving this command. You can use variables explained below.
     
+
     ## Available telegram variables in this blueprint
+
     These variables are received from telegram. You can use them in templates within this automation:
+
       - `telegram_args`: List of words sent after command. You can get each word by its index: `telegram_args[0]`, `telegram_args[1]`, etc.
+
       - `telegram_args_as_text`: Single plain text string from arguments' list. Useful if you need full text, not single words.
+
+      - `telegram_chat_id`: Chat id. It is the same as sender's user id in case it is a private message.
+
+    The following ARE ONLY AVAIBLABLE when receiveing a telegram command (written as /command in a text message). They are not available when clicking inline keyboard buttons.
+
       - `telegram_sender_first_name`: Sender's first name.
+
       - `telegram_sender_last_name`: Sender's last name.
+
       - `telegram_sender_full_name`: Sender's full name, as `first_name + " " + last_name`
+
       - `telegram_sender_user_id`: Sender's user id.
-      - `telegram_chat_id`: Chat id.
+
+
     #### Template example
+
     Use format `{{ variable_name }}` to indicate that it is a template, as usual in Home Assistant.
+
     `Hi {{ telegram_sender_first_name }}! You said {{ telegram_args_as_text }} after the command.`
+
+
   domain: automation
   input:
     telegram_command:
@@ -63,33 +88,44 @@ trigger:
   event_data:
     command: "{{ telegram_command }}"
 - platform: event
-  id: "telegram_command"
+  id: "telegram_callback"
   event_type: telegram_callback
   event_data:
     data: "{{ telegram_command }}"
 - platform: event
-  id: "telegram_command_at_bot"
+  id: "telegram_command"
   event_type: telegram_command
   event_data:
     command: "{{ telegram_command_at_bot }}"
 - platform: event
-  id: "telegram_command_at_bot"
+  id: "telegram_callback"
   event_type: telegram_callback
   event_data:
     data: "{{ telegram_command_at_bot }}"
 
 variables:
+  trigger_event_type: "{{ trigger.event.event_type }}"
   telegram_command: !input 'telegram_command'
   telegram_bot: !input 'telegram_bot'
   telegram_command_at_bot: "{{ telegram_command ~ '@' ~ telegram_bot }}"
   telegram_args: "{{ trigger.event.data['args'] }}"
   telegram_args_as_text: "{% for arg in telegram_args %}{{ arg }} {% endfor %}"
-  telegram_sender_first_name: "{{ trigger.event.data['from_first'] }}"
-  telegram_sender_last_name: "{{ trigger.event.data['from_last'] }}"
-  telegram_sender_full_name: "{{ telegram_sender_first_name }} {{ telegram_sender_last_name }}"
-  telegram_sender_user_id: "{{ trigger.event.data['user_id'] }}"
   telegram_chat_id: "{{ trigger.event.data['chat_id'] }}"
 
 condition:
 
-action: !input 'sequence'
+action: 
+- choose:
+    - alias: "This is a telegram_command event"
+      conditions: "{{ trigger_event_type == 'telegram_command' }}"
+      sequence:
+        - alias: "Set specific variables for telegram_command"
+          variables:
+            telegram_sender_first_name: "{{ trigger.event.data['from_first'] }}"
+            telegram_sender_last_name: "{{ trigger.event.data['from_last'] }}"
+            telegram_sender_full_name: "{{ telegram_sender_first_name }} {{ telegram_sender_last_name }}"
+            telegram_sender_user_id: "{{ trigger.event.data['user_id'] }}"
+        - choose:
+            - conditions: "{{ true }}"
+              sequence: !input 'sequence'
+  default: !input 'sequence'
