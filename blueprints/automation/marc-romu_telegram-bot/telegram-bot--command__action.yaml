@@ -33,7 +33,7 @@ blueprint:
 
       - `telegram_chat_id`: Chat id. It is the same as sender's user id in case it is a private message.
 
-    The following ARE ONLY AVAIBLABLE when receiveing a telegram command (written as /command in a text message). They are not available when clicking inline keyboard buttons.
+    The following ARE ONLY AVAILABLE when receiving a telegram command (written as /command in a text message). They are not available when clicking inline keyboard buttons.
 
       - `telegram_sender_first_name`: Sender's first name.
 
