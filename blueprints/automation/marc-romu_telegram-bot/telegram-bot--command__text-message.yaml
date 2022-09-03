@@ -31,7 +31,7 @@ blueprint:
     They also accept templating.
     
 
-    ## "Reply in private?" field. *It doesn't work with inline keyboard buttons*
+    ## "Reply in private?" field.
 
     When talking to your bot in a group chat, the answer can be sent to the same group chat or directly to a private chat with the sender user.
 
@@ -79,8 +79,6 @@ blueprint:
 
       - `telegram_chat_id`: Chat id. It is the same as sender's user id in case it is a private message.
     
-    The following variables ARE ONLY AVAILABLE when receiving a telegram command (written as /command in a text message). They are not available when clicking inline keyboard buttons:
-      
       - `telegram_sender_first_name`: Sender's first name.
       
       - `telegram_sender_last_name`: Sender's last name.
@@ -129,7 +127,7 @@ blueprint:
           multiline: true
     private:
       name: Reply in private?
-      description: DOESN'T WORK WITH INLINE KEYBOARD BUTTONS. If bot is added to a group, set it to TRUE to reply in a private chat to the person who executed the command instead of in the group chat. This is not needed in case you talk directly to the bot in a private chat.
+      description: If bot is added to a group, set it to TRUE to reply in a private chat to the person who executed the command instead of in the group chat. This is not needed in case you talk directly to the bot in a private chat.
       default: false
       selector:
         boolean:
@@ -224,10 +222,10 @@ variables:
   telegram_command_at_bot: "{{ telegram_command ~ '@' ~ telegram_bot }}"
   telegram_args: "{{ trigger.event.data['args'] }}"
   telegram_args_as_text: "{% for arg in telegram_args %}{{ arg }} {% endfor %}"
-  # telegram_sender_first_name: "First name not defined"
-  # telegram_sender_last_name: "Last name not defined"
-  # telegram_sender_full_name: "{{ telegram_sender_first_name }} {{ telegram_sender_last_name }}"
-  # telegram_sender_user_id: "{{ trigger.event.data['chat_id'] }}"
+  telegram_sender_first_name: "{{ trigger.event.data['from_first'] }}"
+  telegram_sender_last_name: "{{ trigger.event.data['from_last'] }}"
+  telegram_sender_full_name: "{{ telegram_sender_first_name }} {{ telegram_sender_last_name }}"
+  telegram_sender_user_id: "{{ trigger.event.data['user_id'] }}"
   telegram_chat_id: "{{ trigger.event.data['chat_id'] }}"
   title: !input 'title'
   message: !input 'message'
@@ -252,30 +250,11 @@ variables:
 condition:
 
 action:
-- choose:
-    - alias: "This is a telegram_command event"
-      conditions: "{{ trigger_event_type == 'telegram_command' }}"
-      sequence:
-        - alias: "Set specific variables for telegram_command"
-          variables:
-            telegram_sender_first_name: "{{ trigger.event.data['from_first'] }}"
-            telegram_sender_last_name: "{{ trigger.event.data['from_last'] }}"
-            telegram_sender_full_name: "{{ telegram_sender_first_name }} {{ telegram_sender_last_name }}"
-            telegram_sender_user_id: "{{ trigger.event.data['user_id'] }}"
-        - delay:
-            seconds: "{{ delay }}"
-        - service: telegram_bot.send_message
-          data:
-            target: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id }}{% endif %}'
-            title: !input 'title'
-            message: !input 'message'
-            inline_keyboard: "{{ inline_keyboard }}"
-  default:
-  - delay:
-      seconds: "{{ delay }}"
-  - service: telegram_bot.send_message
-    data:
-      target: '{{ telegram_chat_id }}'
-      title: !input 'title'
-      message: !input 'message'
-      inline_keyboard: "{{ inline_keyboard }}"
+- delay:
+    seconds: "{{ delay }}"
+- service: telegram_bot.send_message
+  data:
+    target: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id }}{% endif %}'
+    title: !input 'title'
+    message: !input 'message'
+    inline_keyboard: "{{ inline_keyboard }}"
