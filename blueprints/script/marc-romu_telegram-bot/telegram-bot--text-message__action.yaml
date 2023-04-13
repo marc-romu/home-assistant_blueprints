@@ -1,5 +1,7 @@
 blueprint:
+  domain: script
   name: 'Telegram Bot: Execute an action after receiving a text message'
+  author: Marc Roca Musach (https://github.com/marc-romu)
   description: >
     Wait for a `telegram_text` event and execute an action. Can be filtred by user_id and chat_id.
     
@@ -44,8 +46,7 @@ blueprint:
     Use format `{{ variable_name }}` in order to print a variable, as usual in Home Assistant.
 
     `Hi {{ telegram_sender_first_name }}! You said: {{ telegram_text }}.`
-
-  domain: script
+    
 
   input:
     remove:
