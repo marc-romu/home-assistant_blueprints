@@ -1,5 +1,7 @@
 blueprint:
+  domain: script
   name: 'Telegram Bot: Store a text message into an input_text entity'
+  author: Marc Roca Musach (https://github.com/marc-romu)
   description: >
     Wait for a `telegram_text` event and store the received text message into an `input_text` entity. Can be filtred by `user_id` and `chat_id`.
     
