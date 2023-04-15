@@ -1,7 +1,6 @@
 blueprint:
   domain: automation
   name: 'Telegram Bot: Respond to Telegram Command by executing an action'
-  author: Marc Roca Musach (https://github.com/marc-romu)
   description: >
     Listen to a Telegram Command and execute an action if listened
     
