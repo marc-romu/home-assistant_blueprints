@@ -3,7 +3,6 @@ blueprint:
   homeassistant:
     min_version: 2022.5.0
   name: 'Telegram Bot: Respond to Telegram Command with a text message'
-  author: Marc Roca Musach (https://github.com/marc-romu)
   description: >
     Listen to a Telegram Command and respond back with a text message using Telegram Bot service.
     
