@@ -1,7 +1,6 @@
 blueprint:
   domain: script
   name: 'Telegram Bot: Execute an action after receiving a text message'
-  author: Marc Roca Musach (https://github.com/marc-romu)
   description: >
     Wait for a `telegram_text` event and execute an action. Can be filtred by user_id and chat_id.
     
