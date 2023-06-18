@@ -21,4 +21,4 @@ These are a series of Blueprints (ok, just one for now...) focused on managing t
 
 Type | Title | More info | Raw code | Import this blueprint into your Home Assistant
 ------|-------|:----------------------------------------:|:--------:|:----------------------------------------------:
-Automation | PVPC Optimizer | [:heavy_plus_sign:](missing_link) | [📃](missing_link) | [![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](missing_link)
+Automation | PVPC Optimizer: Turn on devices based on PVPC electricity price of Spain | [:heavy_plus_sign:](missing_link) | [📃](missing_link) | [![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](missing_link)
