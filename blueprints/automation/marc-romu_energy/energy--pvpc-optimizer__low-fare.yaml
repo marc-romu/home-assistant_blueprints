@@ -1,0 +1,67 @@
+blueprint:
+  author: marc-romu
+  domain: automation
+  homeassistant:
+    min_version: 2022.5.0
+  name: 'PVPC Optimizer: Turn on a device only at the cheapest hours of the day'
+  description: >
+    This blueprint is ideal for all those who want to save money with the PVPC electricity tariff in Spain. It's simple:
+
+
+    1. Select the PVPC sensor (you have to set it up first in the configuration).
+
+    2. Choose the device you wish to control.
+    
+    3. Specify how many hours you want it to run.
+
+
+    This blueprint will automatically turn on the device for the specified number of hours with the lowest fare and turn it back off for the rest of the day.
+    
+  input:
+    pvpc_sensor:
+      name: PVPC sensor
+      description: 'REQUIRED. Sensor created with the PVPC integration.'
+      selector:
+        entity:
+          filter:
+            integration: pvpc_hourly_pricing
+    target_device:
+      name: Target device
+      description: 'REQUIRED. Device to turn on when the electricity is cheap.'
+      selector:
+        target:
+    hours:
+      name: How long?
+      description: 'REQUIRED. How many hours per day do you want to turn the device on?'
+      selector:
+        number:
+          min: 1
+          max: 24
+          step: 1
+          unit_of_measurement: "h"
+          mode: slider
+
+mode: queued
+max: 20
+max_exceeded: warning
+
+trigger:
+- platform: state
+  entity_id: !input pvpc_sensor
+
+variables:
+  pvpc_sensor: !input pvpc_sensor
+  pvpc_position: '{{ state_attr( pvpc_sensor ,"price_position") }}'
+  target_device: !input target_device
+  hours: !input hours
+
+condition:
+
+action:
+- if: "{{ pvpc_position <= hours }}"
+  then:
+    - service: homeassistant.turn_on
+      target: !input target_device
+  else:
+    - service: homeassistant.turn_off
+      target: !input target_device
