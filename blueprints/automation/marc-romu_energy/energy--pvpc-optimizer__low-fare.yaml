@@ -16,6 +16,8 @@ blueprint:
 
 
     This blueprint will automatically turn on the device for the specified number of hours with the lowest fare and turn it back off for the rest of the day.
+
+    Note: If the device you want to run cannot be passed to the `homeassistant.turn_on` service, you can create a script and call this script from the blueprint.
     
   input:
     pvpc_sensor:
