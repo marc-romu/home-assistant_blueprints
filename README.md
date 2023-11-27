@@ -22,3 +22,12 @@ These are a series of Blueprints (ok, just one for now...) focused on managing t
 Type | Title | More info | Raw code | Import this blueprint into your Home Assistant
 ------|-------|:----------------------------------------:|:--------:|:----------------------------------------------:
 Automation | PVPC Optimizer: Turn on devices based on the PVPC electricity tariff of Spain | [:heavy_plus_sign:](https://community.home-assistant.io/t/583610) | [📃](https://raw.githubusercontent.com/marc-romu/home-assistant_blueprints/main/blueprints/automation/marc-romu_energy/energy--pvpc-optimizer__low-fare.yaml) | [![Open your Home Assistant instance and show the blueprint import dialog with this blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fmarc-romu%2Fhome-assistant_blueprints%2Fmain%2Fblueprints%2Fautomation%2Fmarc-romu_energy%2Fenergy--pvpc-optimizer__low-fare.yaml)
+
+## Helpers
+
+Simple blueprints to help with basic tasks.
+
+Type | Title | More info | Raw code | Import this blueprint into your Home Assistant
+------|-------|:----------------------------------------:|:--------:|:----------------------------------------------:
+Automation | Input button: Run a script or activate a scene | [:heavy_plus_sign:](https://community.home-assistant.io/t/646860) | [📃](https://raw.githubusercontent.com/marc-romu/home-assistant_blueprints/main/blueprints/automation/marc-romu_helpers/button--script-scene.yaml) | [![Open your Home Assistant instance and show the blueprint import dialog with this blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2Fmarc-romu%2Fhome-assistant_blueprints%2Fmain%2Fblueprints%2Fautomation%2Fmarc-romu_helpers%2Fbutton--script-scene.yaml)
+
