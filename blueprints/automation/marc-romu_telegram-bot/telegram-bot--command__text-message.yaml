@@ -1,4 +1,5 @@
 blueprint:
+  author: marc-romu
   domain: automation
   homeassistant:
     min_version: 2022.5.0

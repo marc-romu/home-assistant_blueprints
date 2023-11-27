@@ -1,4 +1,5 @@
 blueprint:
+  author: marc-romu
   domain: automation
   name: 'Telegram Bot: Respond to Telegram Command by executing an action'
   description: >
