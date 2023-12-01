@@ -14,6 +14,8 @@ blueprint:
     
     3. Specify how many hours you want it to run.
 
+    4. Optionally, specify the number of hours to wait before turning the device on again. Set it to 0 if you don't mind that the 
+
 
     This blueprint will automatically turn on the device for the specified number of hours with the lowest fare and turn it back off for the rest of the day.
 
@@ -42,6 +44,18 @@ blueprint:
           step: 1
           unit_of_measurement: "h"
           mode: slider
+    time_gap:
+      name: Time gap before turning the device on again.
+      description: 'Optional number of hours to wait before turning the device on again. IMPORTANT! It works only within the same day. For example, if the minimum time gap is set to 4h, and the device is turned on at 22:00, after 00:00 it can be turned on again without waiting 4h.'
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 23
+          step: 1
+          unit_of_measurement: "h"
+          mode: slider
+          
 
 mode: queued
 max: 20
@@ -56,11 +70,77 @@ variables:
   pvpc_position: '{{ state_attr( pvpc_sensor ,"price_position") }}'
   target_device: !input target_device
   hours: !input hours
+  time_gap: !input time_gap
+  current_hour: '{{ now().hour }}'
+  prices: >
+    {% set prices = namespace(data = []) %}
+
+    {% for hour in range(24) %}
+      {% set attribute_name = "price_" + "%02d" % hour + "h" %}
+      {% set price = state_attr( pvpc_sensor , attribute_name) %}
+      {% set prices.data = prices.data + [price] %}
+    {% endfor %}
+
+    {{ prices.data }}
+  when_to_turn_on: >
+    {% set time_gap = time_gap|int %}
+    {% set hours = hours|int %}
+    {% set data = namespace(
+                prices_list = prices|list,
+                result = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]) %}
+    {% set price_used = 9999 %}
+
+    {# Function to find the index of the minimum value within a range #}
+    {% macro find_min_index(list, start, end) %}
+      {% set min_index = namespace(data = [start]) %}
+      {% for i in range(start, end) %}
+        {% if list[i]|float < list[min_index.data.0]|float %}
+          {% set min_index.data = [i] %}
+        {% endif %}
+      {% endfor %}
+      {{ min_index.data.0|int }}
+    {% endmacro %}
+
+    {# Loop for the specified number of hours #}
+    {% for _ in range(hours) %}
+      {# Find the index of the minimum value in prices_list within the range [0, 23] #}
+      {% set min_index_value = find_min_index(data.prices_list, 0, 24)|int %}
+      
+      {% if data.prices_list[min_index_value] < price_used %}
+
+        {# Set the value at the min_index to 1 by creating a new list with the updated value #}
+        {% set data.result = data.result[:min_index_value] + [1] + data.result[min_index_value+1:] %}
+
+        {# Set the value at the prices_list to price_used by creating a new list with the updated value #}
+        {% set data.prices_list = data.prices_list[:min_index_value] + [price_used] + data.prices_list[min_index_value+1:] %}
+        
+        {# Set the surrounding X hours to price_used by creating a new list with the updated values, this way they won't be used again #}
+        {% for i in range(1, time_gap + 1) %}
+          {% set item_next = (min_index_value + i) %}
+          {% set item_previous = (min_index_value - i) %}
+          
+          {% if item_next >= 0 and item_next <= 23 %}
+            {% set data.prices_list = data.prices_list[:(item_next)] + [price_used] + data.prices_list[(item_next) + 1:] %}
+          {% endif %}
+
+          {% if item_previous >= 0 and item_previous <= 23 %}
+            {% set data.prices_list = data.prices_list[:(item_previous)] + [price_used] + data.prices_list[(item_previous) + 1:] %}
+          {% endif %}
+
+        {% endfor %}
+
+      {% endif %}
+      
+    {% endfor %}
+
+    {{ data.result | list }}
+
+
 
 condition:
 
 action:
-- if: "{{ pvpc_position <= hours }}"
+- if: "{{ data.result[current_hour] == 1 }}"
   then:
     - service: homeassistant.turn_on
       target: !input target_device
