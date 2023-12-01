@@ -1,0 +1,38 @@
+blueprint:
+  author: marc-romu
+  domain: automation
+  name: 'Input button: Run a script or activate a scene'
+  description: >
+    This is a super simple blueprint to make an 'input_button' entity to execute a script or activate a scene.
+    
+  input:
+    input_button:
+      name: Input button
+      description: 'REQUIRED. Input button to set up.'
+      selector:
+        entity:
+          filter:
+            domain: input_button
+    action:
+      name: Script or scene
+      description: 'REQUIRED. Script to execute or Scene to activate on pressing the button.'
+      selector:
+        entity:
+          filter:
+            domain:
+              - script
+              - scene
+
+mode: single
+
+trigger:
+- platform: state
+  entity_id: !input input_button
+
+condition:
+
+action:
+- alias: "Activate the script/scene"
+  service: homeassistant.turn_on
+  target:
+    entity_id: !input action

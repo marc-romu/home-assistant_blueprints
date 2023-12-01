@@ -1,4 +1,5 @@
 blueprint:
+  author: marc-romu
   domain: script
   name: 'Telegram Bot: Execute an action after receiving a text message'
   description: >

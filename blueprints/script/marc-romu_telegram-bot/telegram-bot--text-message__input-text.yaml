@@ -1,4 +1,5 @@
 blueprint:
+  author: marc-romu
   domain: script
   name: 'Telegram Bot: Store a text message into an input_text entity'
   description: >
@@ -23,8 +24,6 @@ blueprint:
       - `filter_user_id`: Store the message ONLY IF it is received from this user_id. Leave empty to avoid filtering.
 
       - `filter_chat_id`: Store the message ONLY IF it is received from this chat_id. Leave empty to avoid filtering.
-
-  domain: script
 
   input:
     input_text_entity:
