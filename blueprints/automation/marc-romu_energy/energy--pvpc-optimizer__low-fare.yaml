@@ -81,7 +81,8 @@ variables:
       {% set prices.data = prices.data + [price] %}
     {% endfor %}
 
-    {{ prices.data }}
+    {{ prices.data | list }}
+    
   when_to_turn_on: >
     {% set time_gap = time_gap|int %}
     {% set hours = hours|int %}
@@ -140,7 +141,7 @@ variables:
 condition:
 
 action:
-- if: "{{ data.result[current_hour] == 1 }}"
+- if: "{{ when_to_turn_on[current_hour] == 1 }}"
   then:
     - service: homeassistant.turn_on
       target: !input target_device
