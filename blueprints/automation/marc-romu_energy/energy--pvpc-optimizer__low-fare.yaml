@@ -14,7 +14,7 @@ blueprint:
     
     3. Specify how many hours you want it to run.
 
-    4. Optionally, specify the number of hours to wait before turning the device on again. Set it to 0 if you don't mind that the 
+    4. Optionally, specify the number of hours to wait before turning the device on again. Set it to 0 to omit this.
 
 
     This blueprint will automatically turn on the device for the specified number of hours with the lowest fare and turn it back off for the rest of the day.
