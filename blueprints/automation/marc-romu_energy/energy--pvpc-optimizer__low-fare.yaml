@@ -57,7 +57,6 @@ blueprint:
           options:
             - During lowest prices
             - During highest prices
-
           multiple: false
     time_gap:
       name: Time gap
