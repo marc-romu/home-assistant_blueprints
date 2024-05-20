@@ -1,0 +1,150 @@
+blueprint:
+  author: marc-romu
+  domain: automation
+  homeassistant:
+    min_version: 2022.5.0
+  name: 'PVPC Optimizer: Turn on a device only at the cheapest hours of the day'
+  description: >
+    This blueprint is ideal for all those who want to save money with the PVPC electricity tariff in Spain. It's simple:
+
+
+    1. Select the PVPC sensor (you have to set it up first in the configuration).
+
+    2. Choose the device you wish to control.
+    
+    3. Specify how many hours you want it to run.
+
+    4. Optionally, specify the number of hours to wait before turning the device on again. Set it to 0 to omit this.
+
+
+    This blueprint will automatically turn on the device for the specified number of hours with the lowest fare and turn it back off for the rest of the day.
+
+    Note: If the device you want to run cannot be passed to the `homeassistant.turn_on` service, you can create a script and call this script from the blueprint.
+    
+  input:
+    pvpc_sensor:
+      name: PVPC sensor
+      description: 'REQUIRED. Sensor created with the PVPC integration.'
+      selector:
+        entity:
+          filter:
+            integration: pvpc_hourly_pricing
+    target_device:
+      name: Target device
+      description: 'REQUIRED. Device to turn on when the electricity is cheap.'
+      selector:
+        target:
+    hours:
+      name: How long?
+      description: 'REQUIRED. How many hours per day do you want to turn the device on?'
+      selector:
+        number:
+          min: 1
+          max: 24
+          step: 1
+          unit_of_measurement: "h"
+          mode: slider
+    time_gap:
+      name: Time gap
+      description: 'Optional number of hours to wait before turning the device on again. IMPORTANT! It works only within the same day. For example, if the minimum time gap is set to 4h, and the device is turned on at 22:00, after 00:00 it can be turned on again without waiting 4h.'
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 23
+          step: 1
+          unit_of_measurement: "h"
+          mode: slider
+          
+
+mode: queued
+max: 20
+max_exceeded: warning
+
+trigger:
+- platform: state
+  entity_id: !input pvpc_sensor
+
+variables:
+  pvpc_sensor: !input pvpc_sensor
+  pvpc_position: '{{ state_attr( pvpc_sensor ,"price_position") }}'
+  target_device: !input target_device
+  hours: !input hours
+  time_gap: !input time_gap
+  current_hour: '{{ now().hour }}'
+  prices: >
+    {% set prices = namespace(data = []) %}
+
+    {% for hour in range(24) %}
+      {% set attribute_name = "price_" + "%02d" % hour + "h" %}
+      {% set price = state_attr( pvpc_sensor , attribute_name) %}
+      {% set prices.data = prices.data + [price] %}
+    {% endfor %}
+
+    {{ prices.data | list }}
+    
+  when_to_turn_on: >
+    {% set time_gap = time_gap|int %}
+    {% set hours = hours|int %}
+    {% set data = namespace(
+                prices_list = prices|list,
+                result = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]) %}
+    {% set price_used = 9999 %}
+
+    {# Function to find the index of the minimum value within a range #}
+    {% macro find_min_index(list, start, end) %}
+      {% set min_index = namespace(data = [start]) %}
+      {% for i in range(start, end) %}
+        {% if list[i]|float < list[min_index.data.0]|float %}
+          {% set min_index.data = [i] %}
+        {% endif %}
+      {% endfor %}
+      {{ min_index.data.0|int }}
+    {% endmacro %}
+
+    {# Loop for the specified number of hours #}
+    {% for _ in range(hours) %}
+      {# Find the index of the minimum value in prices_list within the range [0, 23] #}
+      {% set min_index_value = find_min_index(data.prices_list, 0, 24)|int %}
+      
+      {% if data.prices_list[min_index_value] < price_used %}
+
+        {# Set the value at the min_index to 1 by creating a new list with the updated value #}
+        {% set data.result = data.result[:min_index_value] + [1] + data.result[min_index_value+1:] %}
+
+        {# Set the value at the prices_list to price_used by creating a new list with the updated value #}
+        {% set data.prices_list = data.prices_list[:min_index_value] + [price_used] + data.prices_list[min_index_value+1:] %}
+        
+        {# Set the surrounding X hours to price_used by creating a new list with the updated values, this way they won't be used again #}
+        {% for i in range(1, time_gap + 1) %}
+          {% set item_next = (min_index_value + i) %}
+          {% set item_previous = (min_index_value - i) %}
+          
+          {% if item_next >= 0 and item_next <= 23 %}
+            {% set data.prices_list = data.prices_list[:(item_next)] + [price_used] + data.prices_list[(item_next) + 1:] %}
+          {% endif %}
+
+          {% if item_previous >= 0 and item_previous <= 23 %}
+            {% set data.prices_list = data.prices_list[:(item_previous)] + [price_used] + data.prices_list[(item_previous) + 1:] %}
+          {% endif %}
+
+        {% endfor %}
+
+      {% endif %}
+      
+    {% endfor %}
+
+    {{ data.result | list }}
+
+
+
+condition:
+
+action:
+- if: "{{ when_to_turn_on[current_hour] == 1 }}"
+  then:
+    - service: homeassistant.turn_on
+      target: !input target_device
+  else:
+    - service: homeassistant.turn_off
+      target: !input target_device
