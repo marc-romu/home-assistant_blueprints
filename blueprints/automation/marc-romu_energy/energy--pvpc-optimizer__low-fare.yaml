@@ -72,6 +72,7 @@ blueprint:
     exclude_hours:
       name: Exclude some hours
       description: 'Optionally select some hours that you want to exclude from the optimization. The price for the selected hours will be totally omitted, and the maximum/minimum prices will be calculated just from the remaining hours.'
+      default: []
       selector:
         select:
           options:
