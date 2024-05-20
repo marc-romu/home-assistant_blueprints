@@ -60,7 +60,7 @@ blueprint:
 
           multiple: false
     time_gap:
-      name: Time gap before turning the device on again
+      name: Time gap
       description: 'Optional number of hours to wait before turning the device on again. IMPORTANT! It works only within the same day. For example, if the minimum time gap is set to 4h, and the device is turned on at 22:00, after 00:00 it can be turned on again without waiting 4h.'
       default: 0
       selector:
