@@ -7,6 +7,8 @@ blueprint:
   description: >
     Using this blueprint, you can create a conversation flow between your Telegram Bot and Home Assistant using a conversation agent (like Home Assistant default Assist or OpenAI Conversation).
 
+    It will only respond to text messages coming from the Telegram Bot. Not commands, voice messages, images...
+
     ## "Conversation Agent" field
 
     REQUIRED. Home Assistant conversation agent to respond to your messages.
