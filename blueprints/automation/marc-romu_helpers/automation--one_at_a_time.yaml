@@ -16,7 +16,7 @@ blueprint:
   input:
     automations:
       name: 'Automations'
-      description: 'List of automations that should not overlap'
+      description: 'List of automations that are mutually exclusive'
       default: []
       selector:
         entity:
