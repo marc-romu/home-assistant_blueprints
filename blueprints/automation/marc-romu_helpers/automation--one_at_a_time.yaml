@@ -1,0 +1,65 @@
+blueprint:
+  name: 'Automation Conductor: Ensure Only One Automation Runs at a Time on the Same Device, No Conflicts'
+  author: marc-romu
+  domain: automation
+  homeassistant:
+    min_version: 2024.6.0
+  description: >
+    Prevent multiple automations from clashing with each other by ensuring that only one runs at a time.
+    This blueprint groups together multiple automations that execute actions on the same device,
+    and ensures that they do not overlap. This is a common problem in Home Assistant, and this
+    blueprint makes it trivial to solve.
+    
+    This blueprint has only one input: a list of automations. When one automation from the list starts to run,
+    the other automations will be turned off. When one automation from the list ends, the other automations
+    will be turned on again.
+  input:
+    automations:
+      name: 'Automations'
+      description: 'List of automations that should not overlap'
+      default: []
+      selector:
+        entity:
+          domain: automation
+          multiple: true
+
+
+
+mode: single
+
+trigger:
+- id: automation_started_or_ended
+  platform: state
+  entity_id: !input automations
+  attribute: current
+  
+
+
+variables:
+  current_automation: '{{ trigger.entity_id }}'
+
+  current_running: '{{ state_attr(current_automation, "current") }}'
+
+  automations: !input automations
+
+  other_automations: >
+    {% set other_automations_list = namespace(data = []) %}
+    {% for other_entity in automations if other_entity != current_automation %}
+      {% set other_automations_list.data = other_automations_list.data + [ other_entity ] %}
+    {% endfor %}
+    {{ other_automations_list.data }}
+
+
+
+action:
+  - if:
+      - condition: template
+        value_template: "{{ current_running > 0 }}"
+    then:
+      - service: automation.turn_off
+        data:
+          entity_id: "{{ other_automations }}"
+    else:
+      - service: automation.turn_on
+        data:
+          entity_id: "{{ other_automations }}"
