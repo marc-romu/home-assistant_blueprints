@@ -8,8 +8,6 @@ Hi! In this repo I store my blueprints for Home Assistant. Feel free to suggest 
 
 These are a series of Blueprints focused on simplifying the creation of Telegram Bots, using the [Telegram Bot](https://www.home-assistant.io/integrations/telegram_bot) integration.
 
-https://raw.githubusercontent.com/marc-romu/home-assistant_blueprints/main/blueprints/automation/marc-romu_telegram-bot/telegram-bot--conversation.yaml
-
 Type | Title | More info | Raw code | Import this blueprint into your Home Assistant
 ------|-------|:----------------------------------------:|:--------:|:----------------------------------------------:
 Automation | Conversation with Assist (and others like OpenAI) | [:heavy_plus_sign:](https://community.home-assistant.io/t/760429) | [📃](https://raw.githubusercontent.com/marc-romu/home-assistant_blueprints/main/blueprints/automation/marc-romu_telegram-bot/telegram-bot--conversation.yaml) | [![Open your Home Assistant instance and show the blueprint import dialog with this blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://raw.githubusercontent.com/marc-romu/home-assistant_blueprints/main/blueprints/automation/marc-romu_telegram-bot/telegram-bot--conversation.yaml)
