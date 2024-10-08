@@ -19,11 +19,11 @@ blueprint:
 
      - **"Reply in private?" field**: If bot is added to a group, set it to TRUE to reply in a private chat to the person who executed the command instead of in the group chat. This is not needed in case you talk directly to the bot in a private chat.
 
-    ## "Filter" section
+    ## "Whitelist" section
 
     Respond to messages coming only from certain users or chats.
 
-    There are two fields: "Filter user_id" and "Filter chat_id". You can add multiple user_ids or chat_ids to each field, but just one per line.
+    There are two fields: "Whitelist user_id" and "Whitelist chat_id". You can add multiple user_ids or chat_ids to each field, but just one per line.
 
     Keep in mind the Telegram id rules:
     
@@ -54,21 +54,21 @@ blueprint:
           selector:
             boolean: {}
 
-    filter:
-      name: Filter
+    whitelist:
+      name: Whitelist
       description: 'Respond to messages comming only from certain users or chats.'
       collapsed: true
       input:
-        filter_user_id:
-          name: Filter user_id
+        whitelist_user_id:
+          name: Whitelist user_id
           description: Execute the sequence ONLY IF the text message is received from this
             user_id. Leave empty to avoid filtering.
           default: []
           selector:
             text:
               multiple: true
-        filter_chat_id:
-          name: Filter chat_id
+        whitelist_chat_id:
+          name: Whitelist chat_id
           description: Execute the sequence ONLY IF the text message is received from this
             chat_id. Leave empty to avoid filtering.
           default: []
@@ -96,26 +96,28 @@ variables:
   telegram_message_id: '{{ trigger.event.data[''id''] }}'
   telegram_message_text: '{{ trigger.event.data[''text''] }}'
   private: !input private
-  filter_user_id: !input filter_user_id
-  filter_chat_id: !input filter_chat_id
+  whitelist_user_id: !input whitelist_user_id
+  whitelist_chat_id: !input whitelist_chat_id
   conversation_id: 'telegram_{{ telegram_chat_id }}'
 
 condition:
   - and:
       - or:
-          - alias: used_id not in filter
+          - alias: used_id in whitelist
             condition: template
-            value_template: "{{ filter_user_id|list|length > 0 and telegram_sender_user_id|string in filter_user_id|list }}"
-          - alias: used_id filter not set
+            value_template: "{{ whitelist_user_id|list|length > 0 and telegram_sender_user_id|string in whitelist_user_id|list }}"
+          - alias: used_id whitelist not set
             condition: template
-            value_template: "{{ filter_user_id|list|length == 0 }}"
+            value_template: "{{ whitelist_user_id|list|length == 0 }}"
       - or:
-          - alias: chat_id not in filter
+          - alias: chat_id in whitelist
             condition: template
-            value_template: "{{ filter_chat_id|list|length > 0 and telegram_chat_id|string in filter_chat_id|list }}"
-          - alias: chat_id filter not set
+            value_template: "{{ whitelist_chat_id|list|length > 0 and telegram_chat_id|string in whitelist_chat_id|list }}"
+          - alias: chat_id whitelist not set
             condition: template
-            value_template: "{{ filter_chat_id|list|length == 0 }}"
+            value_template: "{{ whitelist_chat_id|list|length == 0 }}"
+      - condition: template
+        value_template: "{{ telegram_message_text != None }}"
 
 action:
 - alias: Send message to the conversation agent
