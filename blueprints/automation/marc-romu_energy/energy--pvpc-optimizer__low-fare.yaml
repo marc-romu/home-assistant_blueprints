@@ -2,13 +2,13 @@ blueprint:
   author: marc-romu
   domain: automation
   homeassistant:
-    min_version: 2022.5.0
-  name: 'PVPC Optimizer: Turn on a device based on the hourly electricity prices'
+    min_version: 2024.6.0
+  name: 'PVPC Optimizer v2: Turn on a device based on the hourly electricity prices'
   description: >
-    This blueprint is ideal for all those who want to save money with the PVPC electricity tariff in Spain. The process is simple:
+    This blueprint is ideal for all those who want to automate based on the PVPC electricity pricing in Spain. The process is simple:
 
 
-    1. Select the PVPC sensor (you have to set it up first in the configuration).
+    1. Select the [PVPC sensor](https://www.home-assistant.io/integrations/pvpc_hourly_pricing/) (you have to set it up first in the configuration). 
 
     2. Choose the device you wish to control.
     
@@ -18,10 +18,10 @@ blueprint:
 
     5. Optionally, specify the number of hours to wait before turning the device on again. Set to 0 to omit this setting.
 
-    6. Optionally, select hours you want to exclude from the optimization.
+    6. Optionally, select some hours you want to exclude from the optimization.
 
 
-    This blueprint will automatically turn on the device for the specified number of hours on the cheapest/most expensive tariff, and turn it back off for the rest of the day.
+    This blueprint will automatically turn on the device for the specified number of hours on the cheapest/most expensive periods, and turn it back off for the rest of the day.
 
     Note: If the device you want to run cannot be passed to the `homeassistant.turn_on` service, you can create a script and call this script from the blueprint.
     
@@ -33,11 +33,6 @@ blueprint:
         entity:
           filter:
             integration: pvpc_hourly_pricing
-    target_device:
-      name: Target device
-      description: 'REQUIRED. Device to be turned on.'
-      selector:
-        target:
     hours:
       name: How many hours?
       description: 'REQUIRED. Number of hours per day you want the device to be on.'
@@ -58,50 +53,89 @@ blueprint:
             - During cheapest prices
             - During most expensive prices
           multiple: false
-    time_gap:
-      name: Time gap
-      description: 'Optional: Number of hours to wait before turning the device on again. IMPORTANT: This works only within the same day. For example, if the minimum time gap is set to 4h, and the device is turned on at 22:00, after 00:00 it can be turned on again without waiting 4h.'
-      default: 0
-      selector:
-        number:
-          min: 0
-          max: 23
-          step: 1
-          unit_of_measurement: "h"
-          mode: slider
-    exclude_hours:
-      name: Exclude some hours
-      description: 'Optionally, select hours you want to exclude from the optimization. The price for the selected hours will be totally omitted, and the cheapest/most expensive prices will be calculated just from the remaining hours.'
-      default: []
-      selector:
-        select:
-          options:
-            - '00'
-            - '01'
-            - '02'
-            - '03'
-            - '04'
-            - '05'
-            - '06'
-            - '07'
-            - '08'
-            - '09'
-            - '10'
-            - '11'
-            - '12'
-            - '13'
-            - '14'
-            - '15'
-            - '16'
-            - '17'
-            - '18'
-            - '19'
-            - '20'
-            - '21'
-            - '22'
-            - '23'
-          multiple: true
-          
+
+    device:
+      name: Devices to control
+      icon: mdi:target
+      collapsed: false
+      input:
+        target_device:
+          name: Target devices
+          description: 'Device to control. This parameter is optional. If you do not specify any device here, you can also trigger actions below.'
+          default: {}
+          selector:
+            target:
+        turn_on_boolean:
+          name: Turn on the devices?
+          description: Do you want to turn on the devices when the pricing conditions are met?
+          default: true
+          selector:
+            boolean:
+        turn_off_boolean:
+          name: Turn off the devices?
+          description: Do you want to turn off the devices when the pricing conditions are not met?
+          default: true
+          selector:
+            boolean:
+
+    additional:
+      name: Additional parameters
+      collapsed: true
+      icon: mdi:help
+      input:
+        time_gap:
+          name: Time gap
+          description: 'Optional: Number of hours to wait before turning the device on again. IMPORTANT: This works only within the same day. For example, if the minimum time gap is set to 4h, and the device is turned on at 22:00, after 00:00 it can be turned on again without waiting 4h.'
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 23
+              step: 1
+              unit_of_measurement: "h"
+              mode: slider
+        exclude_hours:
+          name: Exclude some hours
+          description: 'Optionally, select hours you want to exclude from the optimization. The price for the selected hours will be totally omitted, and the cheapest/most expensive prices will be calculated just from the remaining hours.'
+          default: []
+          selector:
+            select:
+              options: ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23']
+              multiple: true
+
+    actions_yes:
+      name: Action on selected hours
+      description: Action to execute when the pricing conditions are met.
+      icon: mdi:check
+      collapsed: true
+      input:
+        action_on_before:
+          name: Actions before turning on the device
+          default: []
+          selector:
+            action: {}
+        action_on_after:
+          name: Actions after turning on the device
+          default: []
+          selector:
+            action: {}
+
+    actions_no:
+      name: Action for the rest of the day
+      description: Action to execute when the pricing conditions are NOT met.
+      icon: mdi:close
+      collapsed: true
+      input:
+        action_off_before:
+          name: Actions before turning off the device
+          default: []
+          selector:
+            action: {}
+        action_off_after:
+          name: Actions after turning off the device
+          default: []
+          selector:
+            action: {}
 
 mode: queued
 max: 20
@@ -197,7 +231,9 @@ variables:
     {% endfor %}
 
     {{ data.result | list }}
-
+  
+  turn_on_boolean: !input turn_on_boolean
+  turn_off_boolean: !input turn_off_boolean
 
 
 condition:
@@ -205,8 +241,24 @@ condition:
 action:
 - if: "{{ when_to_turn_on[current_hour] == 1 }}"
   then:
-    - service: homeassistant.turn_on
-      target: !input target_device
+    - if: "{{ true }}"
+      then: !input action_on_before
+
+    - if: "{{ turn_on_boolean }}"
+      then:
+        - service: homeassistant.turn_on
+          target: !input target_device
+
+    - if: "{{ true }}"
+      then: !input action_on_after
   else:
-    - service: homeassistant.turn_off
-      target: !input target_device
+    - if: "{{ true }}"
+      then: !input action_off_before
+
+    - if: "{{ turn_off_boolean }}"
+      then:
+      - service: homeassistant.turn_off
+        target: !input target_device
+
+    - if: "{{ true }}"
+      then: !input action_off_after
