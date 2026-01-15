@@ -31,8 +31,6 @@ blueprint:
       description: 'REQUIRED. Sensor created using the PVPC integration.'
       selector:
         entity:
-          filter:
-            integration: pvpc_hourly_pricing
     hours:
       name: How many hours?
       description: 'REQUIRED. Number of hours per day you want the device to be on.'
