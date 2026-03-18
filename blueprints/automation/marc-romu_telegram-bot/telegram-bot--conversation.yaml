@@ -129,6 +129,6 @@ action:
   response_variable: response
 - service: telegram_bot.send_message
   data:
-    target: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id
+    chat_id: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id
       }}{% endif %}'
     message: '{{ response.response.speech.plain.speech }}'
