@@ -30,7 +30,7 @@ blueprint:
       name: Input_text entity
       description: "Select an input_text entity to store the message into."
       selector:
-        target:
+        chat_id:
           entity:
             domain: input_text
 
@@ -158,7 +158,7 @@ sequence:
 
       - alias: "Storing message into input_text entity"
         service: input_text.set_value
-        target: !input input_text_entity
+        chat_id: !input input_text_entity
         data:
           value: "{{ telegram_text }}"
 
