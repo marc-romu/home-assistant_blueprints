@@ -314,7 +314,7 @@ action:
             seconds: "{{ delay }}"
         - service: telegram_bot.send_message
           data:
-            target: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id }}{% endif %}'
+            chat_id: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id }}{% endif %}'
             title: !input 'title'
             message: !input 'message'
             inline_keyboard: "{{ inline_keyboard }}"
@@ -324,6 +324,6 @@ action:
     then:
       - service: telegram_bot.send_message
         data:
-          target: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id }}{% endif %}'
+          chat_id: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id }}{% endif %}'
           message: !input 'rejected_message'
           inline_keyboard: "{{ rejected_inline_keyboard }}"
