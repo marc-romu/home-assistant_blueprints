@@ -75,6 +75,17 @@ blueprint:
           selector:
             text:
               multiple: true
+    telegram_bot:
+      name: Bot username (optional)
+      description: >
+        If you have multiple Telegram bots, enter the Telegram username of the
+        bot that should handle this conversation (without the @ symbol, for
+        example: my_home_bot).
+        Leave empty if you only have one bot.
+      default: ''
+      selector:
+        text:
+          multiline: false
 
 mode: queued
 max: 10
@@ -98,6 +109,7 @@ variables:
   private: !input private
   whitelist_user_id: !input whitelist_user_id
   whitelist_chat_id: !input whitelist_chat_id
+  telegram_bot: !input telegram_bot
   conversation_id: 'telegram_{{ telegram_chat_id }}'
 
 condition:
@@ -118,6 +130,16 @@ condition:
             value_template: "{{ whitelist_chat_id|list|length == 0 }}"
       - condition: template
         value_template: "{{ telegram_message_text != None }}"
+      - or:
+          - alias: specific bot requested
+            condition: template
+            value_template: >
+              {{ telegram_bot|length > 0 and
+                 trigger.event.data.bot is defined and
+                 trigger.event.data.bot.username == telegram_bot }}
+          - alias: no bot filter set
+            condition: template
+            value_template: "{{ telegram_bot|length == 0 }}"
 
 action:
 - alias: Send message to the conversation agent
@@ -127,7 +149,7 @@ action:
     conversation_id: '{{ conversation_id }}'
     agent_id: '{{ conversation_agent }}'
   response_variable: response
-- service: telegram_bot.send_message
+- action: telegram_bot.send_message
   data:
     chat_id: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id
       }}{% endif %}'

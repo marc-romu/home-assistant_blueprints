@@ -312,7 +312,7 @@ action:
       sequence:
         - delay:
             seconds: "{{ delay }}"
-        - service: telegram_bot.send_message
+        - action: telegram_bot.send_message
           data:
             chat_id: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id }}{% endif %}'
             title: !input 'title'
@@ -322,7 +322,7 @@ action:
   default:
   - if: "{{ rejected_message != '' }}"
     then:
-      - service: telegram_bot.send_message
+      - action: telegram_bot.send_message
         data:
           chat_id: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id }}{% endif %}'
           message: !input 'rejected_message'

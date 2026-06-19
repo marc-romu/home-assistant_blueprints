@@ -100,6 +100,17 @@ blueprint:
             select:
               options: ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23']
               multiple: true
+        enable_boolean:
+          name: Enable boolean (optional)
+          description: >
+            Optional. An input_boolean (or any binary entity) that must be ON
+            for this blueprint to run. When OFF, the blueprint does nothing.
+          selector:
+            entity:
+              domain:
+                - input_boolean
+                - binary_sensor
+                - switch
 
     actions_yes:
       name: Action on selected hours
@@ -152,32 +163,71 @@ variables:
   tariff_high: '{{ tariff == "During most expensive prices" }}'
   time_gap: !input time_gap
   exclude_hours: !input exclude_hours
-  current_hour: '{{ now().hour }}'
+  enable_boolean: !input enable_boolean
+  pvpc_state: '{{ states(pvpc_sensor) }}'
+  current_slot: >
+    {% set hour = now().hour %}
+    {% set is_25h = (prices|list|length) == 25 %}
+    {% if is_25h %}
+      {% if hour < 2 %}
+        {{ hour }}
+      {% elif hour == 2 %}
+        {{ 2 + (now().fold | default(0, true)) }}
+      {% else %}
+        {{ hour + 1 }}
+      {% endif %}
+    {% else %}
+      {{ hour }}
+    {% endif %}
+
   prices: >
     {% set prices = namespace(data = []) %}
 
     {% for hour in range(24) %}
       {% set attribute_name = "price_" + "%02d" % hour + "h" %}
       {% set price = state_attr( pvpc_sensor , attribute_name ) %}
+      {% if price is none %}
+        {# Missing hour (23h DST day) or sensor not ready -> NaN so it is never selected #}
+        {% set price = 'NaN' %}
+      {% endif %}
       {% set prices.data = prices.data + [price] %}
     {% endfor %}
+
+    {# On 25h DST days, insert the duplicated 02:00 hour as a separate slot #}
+    {% set dup_price = state_attr( pvpc_sensor , "price_02h_d" ) %}
+    {% if dup_price is not none %}
+      {% set prices.data = prices.data[:3] + [dup_price] + prices.data[3:] %}
+    {% endif %}
 
     {{ prices.data | list }}
 
   when_to_turn_on: >
     {% set time_gap = time_gap|int %}
     {% set hours = hours|int %}
+    {% set slots = prices|list|length %}
+    {% set is_25h = (slots == 25) %}
+    {% set result = [] %}
+    {% for _ in range(slots) %}
+      {% set result = result + [0] %}
+    {% endfor %}
     {% set data = namespace(
                 prices_list = prices|list,
-                result = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]) %}
+                result = result) %}
     {% set price_placeholder_used = 9999 if tariff_high == false else -9999 %}
 
     {# Exclude hours from the prices_list #}
     {% if exclude_hours|length > 0 %}
 
-      {% for hour in exclude_hours %}
-        {% set hour = hour|int %}
-        {% set data.prices_list = data.prices_list[:hour] + [price_placeholder_used] + data.prices_list[hour + 1:] %}
+      {% for hour_str in exclude_hours %}
+        {% set hour = hour_str|int %}
+        {% if is_25h and hour == 2 %}
+          {# Exclude both 02:00 slots on 25h DST day #}
+          {% set data.prices_list = data.prices_list[:2] + [price_placeholder_used] + data.prices_list[3:] %}
+          {% set data.prices_list = data.prices_list[:3] + [price_placeholder_used] + data.prices_list[4:] %}
+        {% else %}
+          {% set slot = hour + (1 if is_25h and hour > 2 else 0) %}
+          {% set data.prices_list = data.prices_list[:slot] + [price_placeholder_used] + data.prices_list[slot + 1:] %}
+        {% endif %}
       {% endfor %}
     
     {% endif %}
@@ -195,8 +245,8 @@ variables:
 
     {# Loop for the specified number of hours #}
     {% for _ in range(hours) %}
-      {# Find the index of the first maximum or minimum value in prices_list within the range [0, 23] #}
-      {% set index_value = find_minmax_index(data.prices_list, 0, 24, tariff_high)|int %}
+      {# Find the index of the first maximum or minimum value in prices_list within the range [0, slots] #}
+      {% set index_value = find_minmax_index(data.prices_list, 0, slots, tariff_high)|int %}
 
       {% if (tariff_high == false and
               data.prices_list[index_value] < price_placeholder_used)
@@ -214,11 +264,11 @@ variables:
           {% set item_next = (index_value + i) %}
           {% set item_previous = (index_value - i) %}
           
-          {% if item_next >= 0 and item_next <= 23 %}
+          {% if item_next >= 0 and item_next < slots %}
             {% set data.prices_list = data.prices_list[:(item_next)] + [price_placeholder_used] + data.prices_list[(item_next) + 1:] %}
           {% endif %}
 
-          {% if item_previous >= 0 and item_previous <= 23 %}
+          {% if item_previous >= 0 and item_previous < slots %}
             {% set data.prices_list = data.prices_list[:(item_previous)] + [price_placeholder_used] + data.prices_list[(item_previous) + 1:] %}
           {% endif %}
 
@@ -230,6 +280,8 @@ variables:
 
     {{ data.result | list }}
   
+  target_device_entity: >
+    {{ target_device.entity_id | default([]) | list | first | default('') }}
   turn_on_boolean: !input turn_on_boolean
   turn_off_boolean: !input turn_off_boolean
 
@@ -237,26 +289,32 @@ variables:
 condition:
 
 action:
-- if: "{{ when_to_turn_on[current_hour] == 1 }}"
+- condition: not
+  conditions:
+    - condition: template
+      value_template: "{{ pvpc_state in ['unavailable', 'unknown', 'none', ''] }}"
+- if: "{{ enable_boolean == '' or is_state(enable_boolean, 'on') }}"
   then:
-    - if: "{{ true }}"
-      then: !input action_on_before
-
-    - if: "{{ turn_on_boolean }}"
+    - if: "{{ when_to_turn_on[current_slot] == 1 }}"
       then:
-        - service: homeassistant.turn_on
-          target: !input target_device
+        - if: "{{ true }}"
+          then: !input action_on_before
 
-    - if: "{{ true }}"
-      then: !input action_on_after
-  else:
-    - if: "{{ true }}"
-      then: !input action_off_before
+        - if: "{{ turn_on_boolean and (target_device_entity == '' or not is_state(target_device_entity, 'on')) }}"
+          then:
+            - action: homeassistant.turn_on
+              target: !input target_device
 
-    - if: "{{ turn_off_boolean }}"
-      then:
-      - service: homeassistant.turn_off
-        target: !input target_device
+        - if: "{{ true }}"
+          then: !input action_on_after
+      else:
+        - if: "{{ true }}"
+          then: !input action_off_before
 
-    - if: "{{ true }}"
-      then: !input action_off_after
+        - if: "{{ turn_off_boolean and (target_device_entity == '' or not is_state(target_device_entity, 'off')) }}"
+          then:
+            - action: homeassistant.turn_off
+              target: !input target_device
+
+        - if: "{{ true }}"
+          then: !input action_off_after
