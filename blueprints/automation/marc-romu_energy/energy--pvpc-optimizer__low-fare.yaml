@@ -105,6 +105,7 @@ blueprint:
           description: >
             Optional. An input_boolean (or any binary entity) that must be ON
             for this blueprint to run. When OFF, the blueprint does nothing.
+          default: ''
           selector:
             entity:
               domain:
