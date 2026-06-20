@@ -182,7 +182,7 @@ sequence:
   - alias: "Choose whether message was received or timeout completed"
     choose:
       - alias: "Timeout completed"
-        conditions: "{{ wait.trigger == none }}"
+        conditions: "{{ wait.trigger == none or wait.trigger == null }}"
         sequence: !input 'sequence_message_failed'
 
     default:
@@ -190,6 +190,7 @@ sequence:
         choose:
           - conditions: >
               {{ telegram_bot|length > 0 and
+                 wait.trigger != none and wait.trigger != null and
                  (wait.trigger.event.data.bot is not defined or
                   wait.trigger.event.data.bot.username != telegram_bot) }}
             sequence: []
