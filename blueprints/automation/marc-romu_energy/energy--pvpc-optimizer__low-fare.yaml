@@ -202,14 +202,6 @@ variables:
 
     {{ prices.data | list }}
 
-  intermediate_result: >
-    {% set time_gap = time_gap|int %}
-    {% set hours = hours|int %}
-    {% set slots = prices|list|length %}
-    {% set is_25h = (slots == 25) %}
-    {% set result = [0] * slots %}
-    {{ result | list }}
-
   when_to_turn_on: >
     {% set time_gap = time_gap|int %}
     {% set hours = hours|int %}
