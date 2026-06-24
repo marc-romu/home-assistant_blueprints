@@ -215,10 +215,7 @@ variables:
     {% set hours = hours|int %}
     {% set slots = prices|list|length %}
     {% set is_25h = (slots == 25) %}
-    {% set result = [] %}
-    {% for _ in range(slots) %}
-      {% set result = result + [0] %}
-    {% endfor %}
+    {% set result = [0] * slots %}
     {% set data = namespace(
                 prices_list = prices|list,
                 result = result) %}
