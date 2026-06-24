@@ -207,11 +207,7 @@ variables:
     {% set hours = hours|int %}
     {% set slots = prices|list|length %}
     {% set is_25h = (slots == 25) %}
-    {% set result = [] %}
-    {% for _ in range(slots) %}
-      {% set result = result + [0] %}
-    {% endfor %}
-
+    {% set result = [0] * slots %}
     {{ result | list }}
 
   when_to_turn_on: >
