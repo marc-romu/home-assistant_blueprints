@@ -315,6 +315,7 @@ action:
         - action: telegram_bot.send_message
           data:
             parse_mode: markdown
+            config_entry_id: '{{ trigger.event.data.bot.config_entry_id }}'
             chat_id: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id }}{% endif %}'
             title: !input 'title'
             message: !input 'message'
@@ -326,6 +327,7 @@ action:
       - action: telegram_bot.send_message
         data:
           parse_mode: markdown
+          config_entry_id: '{{ trigger.event.data.bot.config_entry_id }}'
           chat_id: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id }}{% endif %}'
           message: !input 'rejected_message'
           inline_keyboard: "{{ rejected_inline_keyboard }}"
