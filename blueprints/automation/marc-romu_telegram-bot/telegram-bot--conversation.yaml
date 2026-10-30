@@ -19,6 +19,8 @@ blueprint:
 
      - **"Reply in private?" field**: If bot is added to a group, set it to TRUE to reply in a private chat to the person who executed the command instead of in the group chat. This is not needed in case you talk directly to the bot in a private chat.
 
+     - **"Parse mode" field**: Telegram parse mode applied to the agent's reply. `plain_text` (default) sends the reply literally and is the safest option: agent replies are not written for Telegram markup, so a single unpaired `_`, `*`, `[` or `` ` `` makes Telegram reject the whole message and no reply is delivered. Select `markdown`, `markdownv2` or `html` only if your conversation agent outputs Telegram-compatible markup.
+
     ## "Whitelist" section
 
     Respond to messages coming only from certain users or chats.
@@ -53,6 +55,23 @@ blueprint:
           default: false
           selector:
             boolean: {}
+        parse_mode:
+          name: Parse mode
+          description: >
+            Telegram parse mode applied to the agent's reply. 'plain_text'
+            (default) sends the reply literally and is the safest option: agent
+            replies are not written for Telegram markup, so a single unpaired
+            '_', '*', '[' or '`' makes Telegram reject the whole message. Use
+            'markdown', 'markdownv2' or 'html' only if your agent outputs
+            Telegram-compatible markup.
+          default: 'plain_text'
+          selector:
+            select:
+              options:
+                - 'plain_text'
+                - 'markdown'
+                - 'markdownv2'
+                - 'html'
 
     whitelist:
       name: Whitelist
@@ -151,7 +170,7 @@ action:
   response_variable: response
 - action: telegram_bot.send_message
   data:
-    parse_mode: markdown
+    parse_mode: !input 'parse_mode'
     chat_id: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id
       }}{% endif %}'
     message: '{{ response.response.speech.plain.speech }}'

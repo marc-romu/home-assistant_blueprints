@@ -24,7 +24,7 @@ blueprint:
 
     ## "Title" and "Message" fields
 
-    Both fields accept markdown:
+    Both fields accept markdown when the "Parse mode" field is set to `markdown` (default):
 
       - `*bold*` for **bold**
 
@@ -33,6 +33,8 @@ blueprint:
       - ``monospace`` for `monospace`
 
     They also accept templating.
+
+    Keep in mind that Telegram rejects the whole message when the markup is unbalanced, so if your templates can output unpaired `_`, `*`, `[` or `` ` `` (for example entity ids like `living_room`), set "Parse mode" to `plain_text` to send the text literally.
     
 
     ## "Reply in private?" field.
@@ -153,6 +155,22 @@ blueprint:
           max: 30
           mode: slider
           unit_of_measurement: "s"
+    parse_mode:
+      name: Parse mode
+      description: >
+        Telegram parse mode applied to the title, message and rejected message.
+        'markdown' (default) enables the markdown formatting documented above.
+        Switch to 'plain_text' to send the text literally: recommended if your
+        templates can output unpaired '_', '*', '[' or '`', which make Telegram
+        reject the whole message.
+      default: 'markdown'
+      selector:
+        select:
+          options:
+            - 'markdown'
+            - 'markdownv2'
+            - 'html'
+            - 'plain_text'
     inline_keyboard_1:
       name: Inline keyboard (row 1)
       description: '(optional). Example: Help:/help, Status:/status'
@@ -314,7 +332,7 @@ action:
             seconds: "{{ delay }}"
         - action: telegram_bot.send_message
           data:
-            parse_mode: markdown
+            parse_mode: !input 'parse_mode'
             chat_id: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id }}{% endif %}'
             title: !input 'title'
             message: !input 'message'
@@ -325,7 +343,7 @@ action:
     then:
       - action: telegram_bot.send_message
         data:
-          parse_mode: markdown
+          parse_mode: !input 'parse_mode'
           chat_id: '{% if private %}{{ telegram_sender_user_id }}{% else %}{{ telegram_chat_id }}{% endif %}'
           message: !input 'rejected_message'
           inline_keyboard: "{{ rejected_inline_keyboard }}"
