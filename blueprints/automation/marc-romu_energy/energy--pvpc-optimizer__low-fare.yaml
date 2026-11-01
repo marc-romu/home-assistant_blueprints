@@ -166,21 +166,6 @@ variables:
   exclude_hours: !input exclude_hours
   enable_boolean: !input enable_boolean
   pvpc_state: '{{ states(pvpc_sensor) }}'
-  current_slot: >
-    {% set hour = now().hour %}
-    {% set is_25h = (prices|list|length) == 25 %}
-    {% if is_25h %}
-      {% if hour < 2 %}
-        {{ hour }}
-      {% elif hour == 2 %}
-        {{ 2 + (now().fold | default(0, true)) }}
-      {% else %}
-        {{ hour + 1 }}
-      {% endif %}
-    {% else %}
-      {{ hour }}
-    {% endif %}
-
   prices: >
     {% set prices = namespace(data = []) %}
 
@@ -202,15 +187,27 @@ variables:
 
     {{ prices.data | list }}
 
+  current_slot: >
+    {% set hour = now().hour %}
+    {% set is_25h = (prices|list|length) == 25 %}
+    {% if is_25h %}
+      {% if hour < 2 %}
+        {{ hour }}
+      {% elif hour == 2 %}
+        {{ 2 + (now().fold | default(0, true)) }}
+      {% else %}
+        {{ hour + 1 }}
+      {% endif %}
+    {% else %}
+      {{ hour }}
+    {% endif %}
+
   when_to_turn_on: >
     {% set time_gap = time_gap|int %}
     {% set hours = hours|int %}
     {% set slots = prices|list|length %}
     {% set is_25h = (slots == 25) %}
-    {% set result = [] %}
-    {% for _ in range(slots) %}
-      {% set result = result + [0] %}
-    {% endfor %}
+    {% set result = [0] * slots %}
     {% set data = namespace(
                 prices_list = prices|list,
                 result = result) %}

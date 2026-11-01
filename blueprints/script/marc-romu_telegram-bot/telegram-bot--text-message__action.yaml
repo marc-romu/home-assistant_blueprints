@@ -218,5 +218,6 @@ sequence:
                   - alias: "Removing message"
                     action: telegram_bot.delete_message
                     data:
+                      config_entry_id: '{{ wait.trigger.event.data.bot.config_entry_id }}'
                       message_id: "{{ telegram_message_id }}"
                       chat_id: "{{ telegram_chat_id }}"
